@@ -3,7 +3,7 @@ module HashDict exposing
     , empty, singleton, insert, update, remove
     , isEmpty, member, get, size
     , keys, values, toList, fromList
-    , map, fold
+    , map, fold, filter
     )
 
 {-|
@@ -380,4 +380,42 @@ map fn (Dict dict) =
         , usedBuckets = dict.usedBuckets
         , bucketsCapacity = dict.bucketsCapacity
         , bucketsShift = dict.bucketsShift
+        }
+
+
+filter : (k -> v -> Bool) -> Dict k v -> Dict k v
+filter pred (Dict dict) =
+    let
+        ( newBuckets, newSize, _ ) =
+            Array.foldl
+                (\bucket ( accBuckets, accSizeA, i ) ->
+                    let
+                        ( newBucket, newSize_ ) =
+                            List.foldl
+                                (\(( k, v ) as x) ( accBucket, accSizeL ) ->
+                                    if pred k v then
+                                        ( x :: accBucket, accSizeL )
+
+                                    else
+                                        ( accBucket, accSizeL - 1 )
+                                )
+                                ( [], accSizeA )
+                                bucket
+                    in
+                    ( if newSize_ == accSizeA then
+                        accBuckets
+
+                      else
+                        Array.set i newBucket accBuckets
+                    , newSize_
+                    , i + 1
+                    )
+                )
+                ( dict.buckets, dict.size, 0 )
+                dict.buckets
+    in
+    Dict
+        { dict
+            | buckets = newBuckets
+            , size = newSize
         }
