@@ -4,7 +4,7 @@ module HashDict exposing
     , isEmpty, member, get, size
     , keys, values, toList, fromList
     , map, fold, filter
-    , union
+    , union, intersect, diff
     )
 
 {-|
@@ -425,3 +425,13 @@ filter pred (Dict dict) =
 union : Dict k v -> Dict k v -> Dict k v
 union t1 t2 =
     fold insert t2 t1
+
+
+intersect : Dict k v -> Dict k v -> Dict k v
+intersect t1 t2 =
+    filter (\k _ -> member k t2) t1
+
+
+diff : Dict k a -> Dict k b -> Dict k a
+diff t1 t2 =
+    fold (\k v t -> remove k t) t1 t2
