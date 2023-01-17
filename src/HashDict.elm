@@ -4,6 +4,7 @@ module HashDict exposing
     , isEmpty, member, get, size
     , keys, values, toList, fromList
     , map, fold, filter
+    , union
     )
 
 {-|
@@ -419,3 +420,8 @@ filter pred (Dict dict) =
             | buckets = newBuckets
             , size = newSize
         }
+
+
+union : Dict k v -> Dict k v -> Dict k v
+union t1 t2 =
+    fold insert t2 t1
