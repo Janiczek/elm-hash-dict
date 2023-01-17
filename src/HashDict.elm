@@ -3,7 +3,7 @@ module HashDict exposing
     , empty, singleton, insert, update, remove
     , isEmpty, member, get, size
     , keys, values, toList, fromList
-    , fold
+    , map, fold
     )
 
 {-|
@@ -31,7 +31,7 @@ module HashDict exposing
 
 # Transform
 
-@docs map, foldl, foldr, filter, partition
+@docs map, fold, filter, partition
 
 
 # Combine
@@ -364,3 +364,20 @@ update key fn ((Dict dict) as wrappedDict) =
                                 updateLoop (x :: acc) xs
             in
             updateLoop [] bucket
+
+
+map : (k -> v1 -> v2) -> Dict k v1 -> Dict k v2
+map fn (Dict dict) =
+    let
+        newBuckets =
+            dict.buckets
+                |> Array.map (List.map (\( k, v ) -> ( k, fn k v )))
+    in
+    Dict
+        { buckets = newBuckets
+        , hash = dict.hash
+        , size = dict.size
+        , usedBuckets = dict.usedBuckets
+        , bucketsCapacity = dict.bucketsCapacity
+        , bucketsShift = dict.bucketsShift
+        }
