@@ -8,6 +8,7 @@ module HashDict exposing
     , isEmpty
     , keys
     , member
+    , remove
     , singleton
     , size
     , toList
@@ -86,23 +87,6 @@ addEntry : ( k, v ) -> Inner k v -> Inner k v
 addEntry ( key, value ) dict =
     -- without resizing
     let
-        insertLoop : List ( k, v ) -> List ( k, v ) -> ( List ( k, v ), Int )
-        insertLoop acc remaining =
-            case remaining of
-                [] ->
-                    ( ( key, value ) :: acc
-                    , dict.size + 1
-                    )
-
-                (( xk, _ ) as x) :: xs ->
-                    if xk == key then
-                        ( (( xk, value ) :: acc) ++ xs
-                        , dict.size
-                        )
-
-                    else
-                        insertLoop (x :: acc) xs
-
         index =
             bucketIndex (dict.hash key) dict.bucketsShift
     in
@@ -112,6 +96,23 @@ addEntry ( key, value ) dict =
 
         Just bucket ->
             let
+                insertLoop : List ( k, v ) -> List ( k, v ) -> ( List ( k, v ), Int )
+                insertLoop acc remaining =
+                    case remaining of
+                        [] ->
+                            ( ( key, value ) :: acc
+                            , dict.size + 1
+                            )
+
+                        (( xk, _ ) as x) :: xs ->
+                            if xk == key then
+                                ( (( xk, value ) :: acc) ++ xs
+                                , dict.size
+                                )
+
+                            else
+                                insertLoop (x :: acc) xs
+
                 ( newBucket, newSize ) =
                     insertLoop [] bucket
 
@@ -246,3 +247,40 @@ fold fn acc (Dict dict) =
         )
         acc
         dict.buckets
+
+
+remove : k -> Dict k v -> Dict k v
+remove key ((Dict dict) as wrappedDict) =
+    let
+        index =
+            bucketIndex (dict.hash key) dict.bucketsShift
+    in
+    case Array.get index dict.buckets of
+        Nothing ->
+            wrappedDict
+
+        Just bucket ->
+            let
+                removeLoop : List ( k, v ) -> List ( k, v ) -> Maybe (List ( k, v ))
+                removeLoop acc remaining =
+                    case remaining of
+                        [] ->
+                            Nothing
+
+                        (( xk, _ ) as x) :: xs ->
+                            if xk == key then
+                                Just (acc ++ xs)
+
+                            else
+                                removeLoop (x :: acc) xs
+            in
+            case removeLoop [] bucket of
+                Nothing ->
+                    wrappedDict
+
+                Just newBucket ->
+                    Dict
+                        { dict
+                            | buckets = Array.set index newBucket dict.buckets
+                            , size = dict.size - 1
+                        }
