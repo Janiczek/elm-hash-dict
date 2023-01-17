@@ -37,7 +37,7 @@ module HashDict exposing
 
 # Combine
 
-@docs union, intersect, diff, merge
+@docs union, intersect, diff
 
 -}
 
