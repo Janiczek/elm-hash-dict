@@ -1,19 +1,44 @@
 module HashDict exposing
     ( Dict
-    , empty
+    , empty, singleton, insert, update, remove
+    , isEmpty, member, get, size
+    , keys, values, toList, fromList
     , fold
-    , fromList
-    , get
-    , insert
-    , isEmpty
-    , keys
-    , member
-    , remove
-    , singleton
-    , size
-    , toList
-    , values
     )
+
+{-|
+
+
+# Dictionaries
+
+@docs Dict
+
+
+# Build
+
+@docs empty, singleton, insert, update, remove
+
+
+# Query
+
+@docs isEmpty, member, get, size
+
+
+# Lists
+
+@docs keys, values, toList, fromList
+
+
+# Transform
+
+@docs map, foldl, foldr, filter, partition
+
+
+# Combine
+
+@docs union, intersect, diff, merge
+
+-}
 
 import Array exposing (Array)
 import Bitwise
@@ -284,3 +309,58 @@ remove key ((Dict dict) as wrappedDict) =
                             | buckets = Array.set index newBucket dict.buckets
                             , size = dict.size - 1
                         }
+
+
+update : k -> (Maybe v -> Maybe v) -> Dict k v -> Dict k v
+update key fn ((Dict dict) as wrappedDict) =
+    let
+        index =
+            bucketIndex (dict.hash key) dict.bucketsShift
+
+        onNothing () =
+            case fn Nothing of
+                Nothing ->
+                    wrappedDict
+
+                Just value ->
+                    insert key value wrappedDict
+    in
+    case Array.get index dict.buckets of
+        Nothing ->
+            onNothing ()
+
+        Just bucket ->
+            let
+                updateLoop : List ( k, v ) -> List ( k, v ) -> Dict k v
+                updateLoop acc remaining =
+                    case remaining of
+                        [] ->
+                            onNothing ()
+
+                        (( xk, xv ) as x) :: xs ->
+                            if xk == key then
+                                case fn (Just xv) of
+                                    Nothing ->
+                                        -- remove
+                                        let
+                                            newBucket =
+                                                acc ++ xs
+                                        in
+                                        Dict
+                                            { dict
+                                                | size = dict.size - 1
+                                                , buckets = Array.set index newBucket dict.buckets
+                                            }
+
+                                    Just newValue ->
+                                        -- replace
+                                        let
+                                            newBucket =
+                                                (( xk, newValue ) :: acc) ++ xs
+                                        in
+                                        Dict { dict | buckets = Array.set index newBucket dict.buckets }
+
+                            else
+                                updateLoop (x :: acc) xs
+            in
+            updateLoop [] bucket
