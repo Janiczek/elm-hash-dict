@@ -149,6 +149,7 @@ resize dict =
                     , usedBuckets = 0
                     , bucketsCapacity = newCapacity
                     , bucketsShift = newShift
+                    , size = 0
                 }
         in
         dict.buckets
