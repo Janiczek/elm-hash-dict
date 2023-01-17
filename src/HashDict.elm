@@ -1,9 +1,17 @@
 module HashDict exposing
     ( Dict
     , empty
+    , fold
     , fromList
     , get
     , insert
+    , isEmpty
+    , keys
+    , member
+    , singleton
+    , size
+    , toList
+    , values
     )
 
 import Array exposing (Array)
@@ -102,13 +110,13 @@ addEntry ( key, value ) dict =
         Nothing ->
             Debug.todo "can't happen if bucketsCount and bucketIndex are implemented correctly"
 
-        Just collisions ->
+        Just bucket ->
             let
                 ( newBucket, newSize ) =
-                    insertLoop [] collisions
+                    insertLoop [] bucket
 
                 newUsedBuckets =
-                    if List.isEmpty collisions then
+                    if List.isEmpty bucket then
                         dict.usedBuckets + 1
 
                     else
@@ -174,3 +182,67 @@ fromList hash list =
     List.foldl addEntry (emptyInner hash) list
         |> resize
         |> Dict
+
+
+size : Dict k v -> Int
+size (Dict dict) =
+    dict.size
+
+
+isEmpty : Dict k v -> Bool
+isEmpty (Dict dict) =
+    dict.size == 0
+
+
+member : k -> Dict k v -> Bool
+member key (Dict dict) =
+    let
+        index =
+            bucketIndex (dict.hash key) dict.bucketsShift
+    in
+    -- TODO PERF: perhaps inline these Maybe functions?
+    Array.get index dict.buckets
+        |> Maybe.map (List.any (\( k, _ ) -> k == key))
+        |> Maybe.withDefault False
+
+
+toList : Dict k v -> List ( k, v )
+toList (Dict dict) =
+    dict.buckets
+        |> Array.toList
+        |> List.concat
+
+
+singleton : (k -> Int) -> k -> v -> Dict k v
+singleton hash key value =
+    emptyInner hash
+        |> addEntry ( key, value )
+        |> resize
+        |> Dict
+
+
+keys : Dict k v -> List k
+keys (Dict dict) =
+    dict.buckets
+        |> Array.toList
+        |> List.concatMap (List.map Tuple.first)
+
+
+values : Dict k v -> List v
+values (Dict dict) =
+    dict.buckets
+        |> Array.toList
+        |> List.concatMap (List.map Tuple.second)
+
+
+fold : (k -> v -> acc -> acc) -> acc -> Dict k v -> acc
+fold fn acc (Dict dict) =
+    Array.foldl
+        (\bucket accA ->
+            List.foldl
+                (\( k, v ) accL -> fn k v accL)
+                accA
+                bucket
+        )
+        acc
+        dict.buckets
