@@ -3,7 +3,7 @@ module HashDict exposing
     , empty, singleton, insert, update, remove
     , isEmpty, member, get, size
     , keys, values, toList, fromList
-    , map, fold, filter
+    , map, fold, filter, partition
     , union, intersect, diff
     )
 
@@ -435,3 +435,16 @@ intersect t1 t2 =
 diff : Dict k a -> Dict k b -> Dict k a
 diff t1 t2 =
     fold (\k v t -> remove k t) t1 t2
+
+
+partition : (k -> v -> Bool) -> Dict k v -> ( Dict k v, Dict k v )
+partition isGood ((Dict dict) as wrappedDict) =
+    let
+        add key value ( t1, t2 ) =
+            if isGood key value then
+                ( insert key value t1, t2 )
+
+            else
+                ( t1, insert key value t2 )
+    in
+    fold add ( empty dict.hash, empty dict.hash ) wrappedDict
