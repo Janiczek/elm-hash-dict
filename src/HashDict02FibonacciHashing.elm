@@ -1,4 +1,4 @@
-module HashDict04WithoutClamp exposing
+module HashDict02FibonacciHashing exposing
     ( Dict
     , empty, singleton, insert, update, remove
     , isEmpty, member, get, size
@@ -9,7 +9,7 @@ module HashDict04WithoutClamp exposing
 
 {-| This is:
 
-01Naive + no clamping of the hash
+01Naive + fibonacci hashing instead of just right shift
 
 
 # Dictionaries
@@ -97,7 +97,7 @@ empty hash =
 
 emptyInner : (k -> Int) -> Inner k v
 emptyInner hash =
-    { hash = hash
+    { hash = \k -> Bitwise.shiftRightZfBy 0 (hash k) -- 32 bit
     , buckets = Array.repeat initBucketsCount []
     , size = 0
     , usedBuckets = 0
@@ -108,7 +108,9 @@ emptyInner hash =
 
 bucketIndex : Int -> Int -> Int
 bucketIndex hash shift =
-    Bitwise.shiftRightZfBy shift hash
+    -- Fibonacci hashing: the constant is 2^32 / phi.
+    -- https://probablydance.com/2018/06/16/fibonacci-hashing-the-optimization-that-the-world-forgot-or-a-better-alternative-to-integer-modulo/
+    Bitwise.shiftRightZfBy shift (hash * 2654435769)
 
 
 addEntry : ( k, v ) -> Inner k v -> Inner k v

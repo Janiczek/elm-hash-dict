@@ -1,4 +1,4 @@
-module HashDict04WithoutClamp exposing
+module HashDict03CacheEquality exposing
     ( Dict
     , empty, singleton, insert, update, remove
     , isEmpty, member, get, size
@@ -9,7 +9,7 @@ module HashDict04WithoutClamp exposing
 
 {-| This is:
 
-01Naive + no clamping of the hash
+04WithoutClamp + holding the hash inside the entries and shortcircuiting
 
 
 # Dictionaries
@@ -54,7 +54,7 @@ type Dict k v
 
 type alias Inner k v =
     { hash : k -> Int
-    , buckets : Array (List ( k, v ))
+    , buckets : Array (List ( Int, k, v ))
     , size : Int -- actual keys stored
     , usedBuckets : Int
     , bucketsCapacity : Int -- derivable from bucketsShift, but let's cache it. Used in every resize check (after insert)
@@ -113,27 +113,36 @@ bucketIndex hash shift =
 
 addEntry : ( k, v ) -> Inner k v -> Inner k v
 addEntry ( key, value ) dict =
+    let
+        hash =
+            dict.hash key
+    in
+    addEntry_ ( hash, key, value ) dict
+
+
+addEntry_ : ( Int, k, v ) -> Inner k v -> Inner k v
+addEntry_ ( hash, key, value ) dict =
     -- without resizing
     let
         index =
-            bucketIndex (dict.hash key) dict.bucketsShift
+            bucketIndex hash dict.bucketsShift
 
         bucket =
             Array.get index dict.buckets
                 |> unwrapOrLoop
 
         -- can't happen if we have our bucket bitwise logic correct
-        insertLoop : List ( k, v ) -> List ( k, v ) -> ( List ( k, v ), Int )
+        insertLoop : List ( Int, k, v ) -> List ( Int, k, v ) -> ( List ( Int, k, v ), Int )
         insertLoop acc remaining =
             case remaining of
                 [] ->
-                    ( ( key, value ) :: acc
+                    ( ( hash, key, value ) :: acc
                     , dict.size + 1
                     )
 
-                (( xk, _ ) as x) :: xs ->
-                    if xk == key then
-                        ( (( xk, value ) :: acc) ++ xs
+                (( h, xk, _ ) as x) :: xs ->
+                    if h == hash && xk == key then
+                        ( (( h, xk, value ) :: acc) ++ xs
                         , dict.size
                         )
 
@@ -160,12 +169,15 @@ addEntry ( key, value ) dict =
 get : k -> Dict k v -> Maybe v
 get key (Dict dict) =
     let
+        hash =
+            dict.hash key
+
         index =
-            bucketIndex (dict.hash key) dict.bucketsShift
+            bucketIndex hash dict.bucketsShift
     in
     Array.get index dict.buckets
-        |> Maybe.andThen (List.find (\( k, _ ) -> k == key))
-        |> Maybe.map Tuple.second
+        |> Maybe.andThen (List.find (\( h, k, _ ) -> h == hash && k == key))
+        |> Maybe.map (\( _, _, v ) -> v)
 
 
 resize : Inner k v -> Inner k v
@@ -190,7 +202,7 @@ resize dict =
         dict.buckets
             |> Array.toList
             |> List.concat
-            |> List.foldl addEntry emptyNewDict
+            |> List.foldl addEntry_ emptyNewDict
 
     else
         dict
@@ -224,11 +236,14 @@ isEmpty (Dict dict) =
 member : k -> Dict k v -> Bool
 member key (Dict dict) =
     let
+        hash =
+            dict.hash key
+
         index =
-            bucketIndex (dict.hash key) dict.bucketsShift
+            bucketIndex hash dict.bucketsShift
     in
     Array.get index dict.buckets
-        |> Maybe.map (List.any (\( k, _ ) -> k == key))
+        |> Maybe.map (List.any (\( h, k, _ ) -> h == hash && k == key))
         |> Maybe.withDefault False
 
 
@@ -236,7 +251,7 @@ toList : Dict k v -> List ( k, v )
 toList (Dict dict) =
     dict.buckets
         |> Array.toList
-        |> List.concat
+        |> List.concatMap (List.map (\( _, k, v ) -> ( k, v )))
 
 
 singleton : (k -> Int) -> k -> v -> Dict k v
@@ -251,14 +266,14 @@ keys : Dict k v -> List k
 keys (Dict dict) =
     dict.buckets
         |> Array.toList
-        |> List.concatMap (List.map Tuple.first)
+        |> List.concatMap (List.map (\( _, k, _ ) -> k))
 
 
 values : Dict k v -> List v
 values (Dict dict) =
     dict.buckets
         |> Array.toList
-        |> List.concatMap (List.map Tuple.second)
+        |> List.concatMap (List.map (\( _, _, v ) -> v))
 
 
 fold : (k -> v -> acc -> acc) -> acc -> Dict k v -> acc
@@ -266,7 +281,7 @@ fold fn acc (Dict dict) =
     Array.foldl
         (\bucket accA ->
             List.foldl
-                (\( k, v ) accL -> fn k v accL)
+                (\( _, k, v ) accL -> fn k v accL)
                 accA
                 bucket
         )
@@ -277,8 +292,11 @@ fold fn acc (Dict dict) =
 remove : k -> Dict k v -> Dict k v
 remove key ((Dict dict) as wrappedDict) =
     let
+        hash =
+            dict.hash key
+
         index =
-            bucketIndex (dict.hash key) dict.bucketsShift
+            bucketIndex hash dict.bucketsShift
     in
     case Array.get index dict.buckets of
         Nothing ->
@@ -286,14 +304,14 @@ remove key ((Dict dict) as wrappedDict) =
 
         Just bucket ->
             let
-                removeLoop : List ( k, v ) -> List ( k, v ) -> Maybe (List ( k, v ))
+                removeLoop : List ( Int, k, v ) -> List ( Int, k, v ) -> Maybe (List ( Int, k, v ))
                 removeLoop acc remaining =
                     case remaining of
                         [] ->
                             Nothing
 
-                        (( xk, _ ) as x) :: xs ->
-                            if xk == key then
+                        (( h, xk, _ ) as x) :: xs ->
+                            if h == hash && xk == key then
                                 Just (acc ++ xs)
 
                             else
@@ -314,8 +332,11 @@ remove key ((Dict dict) as wrappedDict) =
 update : k -> (Maybe v -> Maybe v) -> Dict k v -> Dict k v
 update key fn ((Dict dict) as wrappedDict) =
     let
+        hash =
+            dict.hash key
+
         index =
-            bucketIndex (dict.hash key) dict.bucketsShift
+            bucketIndex hash dict.bucketsShift
 
         onNothing () =
             case fn Nothing of
@@ -331,14 +352,14 @@ update key fn ((Dict dict) as wrappedDict) =
 
         Just bucket ->
             let
-                updateLoop : List ( k, v ) -> List ( k, v ) -> Dict k v
+                updateLoop : List ( Int, k, v ) -> List ( Int, k, v ) -> Dict k v
                 updateLoop acc remaining =
                     case remaining of
                         [] ->
                             onNothing ()
 
-                        (( xk, xv ) as x) :: xs ->
-                            if xk == key then
+                        (( h, xk, xv ) as x) :: xs ->
+                            if h == hash && xk == key then
                                 case fn (Just xv) of
                                     Nothing ->
                                         -- remove
@@ -356,7 +377,7 @@ update key fn ((Dict dict) as wrappedDict) =
                                         -- replace
                                         let
                                             newBucket =
-                                                (( xk, newValue ) :: acc) ++ xs
+                                                (( h, xk, newValue ) :: acc) ++ xs
                                         in
                                         Dict { dict | buckets = Array.set index newBucket dict.buckets }
 
@@ -371,7 +392,7 @@ map fn (Dict dict) =
     let
         newBuckets =
             dict.buckets
-                |> Array.map (List.map (\( k, v ) -> ( k, fn k v )))
+                |> Array.map (List.map (\( h, k, v ) -> ( h, k, fn k v )))
     in
     Dict
         { buckets = newBuckets
@@ -392,7 +413,7 @@ filter pred (Dict dict) =
                     let
                         ( newBucket, newSize_ ) =
                             List.foldl
-                                (\(( k, v ) as x) ( accBucket, accSizeL ) ->
+                                (\(( _, k, v ) as x) ( accBucket, accSizeL ) ->
                                     if pred k v then
                                         ( x :: accBucket, accSizeL )
 

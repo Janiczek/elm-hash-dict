@@ -1,4 +1,4 @@
-module HashDict04WithoutClamp exposing
+module HashDict05InlinedMaybe exposing
     ( Dict
     , empty, singleton, insert, update, remove
     , isEmpty, member, get, size
@@ -9,7 +9,7 @@ module HashDict04WithoutClamp exposing
 
 {-| This is:
 
-01Naive + no clamping of the hash
+04WithoutClamp + inlined Maybe.andThen + Maybe.map
 
 
 # Dictionaries
@@ -163,9 +163,17 @@ get key (Dict dict) =
         index =
             bucketIndex (dict.hash key) dict.bucketsShift
     in
-    Array.get index dict.buckets
-        |> Maybe.andThen (List.find (\( k, _ ) -> k == key))
-        |> Maybe.map Tuple.second
+    case Array.get index dict.buckets of
+        Nothing ->
+            Nothing
+
+        Just bucket ->
+            case List.find (\( k, _ ) -> k == key) bucket of
+                Nothing ->
+                    Nothing
+
+                Just ( _, v ) ->
+                    Just v
 
 
 resize : Inner k v -> Inner k v
@@ -227,9 +235,12 @@ member key (Dict dict) =
         index =
             bucketIndex (dict.hash key) dict.bucketsShift
     in
-    Array.get index dict.buckets
-        |> Maybe.map (List.any (\( k, _ ) -> k == key))
-        |> Maybe.withDefault False
+    case Array.get index dict.buckets of
+        Nothing ->
+            False
+
+        Just bucket ->
+            List.any (\( k, _ ) -> k == key) bucket
 
 
 toList : Dict k v -> List ( k, v )

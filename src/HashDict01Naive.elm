@@ -1,4 +1,4 @@
-module HashDict04WithoutClamp exposing
+module HashDict01Naive exposing
     ( Dict
     , empty, singleton, insert, update, remove
     , isEmpty, member, get, size
@@ -9,7 +9,7 @@ module HashDict04WithoutClamp exposing
 
 {-| This is:
 
-01Naive + no clamping of the hash
+01Naive = A base to try different optimizations on.
 
 
 # Dictionaries
@@ -97,7 +97,7 @@ empty hash =
 
 emptyInner : (k -> Int) -> Inner k v
 emptyInner hash =
-    { hash = hash
+    { hash = \k -> Bitwise.and 0xFFFFFFFF (hash k) -- 32 bit
     , buckets = Array.repeat initBucketsCount []
     , size = 0
     , usedBuckets = 0
