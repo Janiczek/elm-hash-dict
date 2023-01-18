@@ -115,45 +115,44 @@ addEntry ( key, value ) dict =
     let
         index =
             bucketIndex (dict.hash key) dict.bucketsShift
-    in
-    case Array.get index dict.buckets of
-        Nothing ->
-            Debug.todo "can't happen if bucketsCount and bucketIndex are implemented correctly"
 
-        Just bucket ->
-            let
-                insertLoop : List ( k, v ) -> List ( k, v ) -> ( List ( k, v ), Int )
-                insertLoop acc remaining =
-                    case remaining of
-                        [] ->
-                            ( ( key, value ) :: acc
-                            , dict.size + 1
-                            )
+        bucket =
+            Array.get index dict.buckets
+                |> unwrapOrLoop
 
-                        (( xk, _ ) as x) :: xs ->
-                            if xk == key then
-                                ( (( xk, value ) :: acc) ++ xs
-                                , dict.size
-                                )
+        -- can't happen if we have our bucket bitwise logic correct
+        insertLoop : List ( k, v ) -> List ( k, v ) -> ( List ( k, v ), Int )
+        insertLoop acc remaining =
+            case remaining of
+                [] ->
+                    ( ( key, value ) :: acc
+                    , dict.size + 1
+                    )
 
-                            else
-                                insertLoop (x :: acc) xs
-
-                ( newBucket, newSize ) =
-                    insertLoop [] bucket
-
-                newUsedBuckets =
-                    if List.isEmpty bucket then
-                        dict.usedBuckets + 1
+                (( xk, _ ) as x) :: xs ->
+                    if xk == key then
+                        ( (( xk, value ) :: acc) ++ xs
+                        , dict.size
+                        )
 
                     else
-                        dict.usedBuckets
-            in
-            { dict
-                | buckets = Array.set index newBucket dict.buckets
-                , usedBuckets = newUsedBuckets
-                , size = newSize
-            }
+                        insertLoop (x :: acc) xs
+
+        ( newBucket, newSize ) =
+            insertLoop [] bucket
+
+        newUsedBuckets =
+            if List.isEmpty bucket then
+                dict.usedBuckets + 1
+
+            else
+                dict.usedBuckets
+    in
+    { dict
+        | buckets = Array.set index newBucket dict.buckets
+        , usedBuckets = newUsedBuckets
+        , size = newSize
+    }
 
 
 get : k -> Dict k v -> Maybe v
@@ -448,3 +447,22 @@ partition isGood ((Dict dict) as wrappedDict) =
                 ( t1, insert key value t2 )
     in
     fold add ( empty dict.hash, empty dict.hash ) wrappedDict
+
+
+unwrapOrLoop : Maybe a -> a
+unwrapOrLoop maybe =
+    let
+        crash : Int -> Int
+        crash n =
+            1 + crash n
+    in
+    case maybe of
+        Nothing ->
+            let
+                _ =
+                    crash 0
+            in
+            unwrapOrLoop maybe
+
+        Just a ->
+            a
