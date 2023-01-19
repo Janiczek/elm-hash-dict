@@ -14133,6 +14133,7 @@ var $lue_bird$elm_alternative_benchmark_runner$Benchmark$Runner$Alternative$prog
 var $lue_bird$elm_alternative_benchmark_runner$Benchmark$Runner$Alternative$program = function (suite) {
 	return A2($lue_bird$elm_alternative_benchmark_runner$Benchmark$Runner$Alternative$programWith, $lue_bird$elm_alternative_benchmark_runner$Benchmark$Runner$Alternative$defaultOptions, suite);
 };
+var $elm_explorations$benchmark$Benchmark$describe = $elm_explorations$benchmark$Benchmark$Benchmark$Group;
 var $elm$core$Dict$fromList = function (assocs) {
 	return A3(
 		$elm$core$List$foldl,
@@ -14145,15 +14146,6 @@ var $elm$core$Dict$fromList = function (assocs) {
 		$elm$core$Dict$empty,
 		assocs);
 };
-var $author$project$Main$items = A2(
-	$elm$core$List$map,
-	function (v) {
-		return _Utils_Tuple2(
-			$elm$core$String$fromInt(v),
-			v);
-	},
-	A2($elm$core$List$range, 1, 100));
-var $author$project$Main$d00 = $elm$core$Dict$fromList($author$project$Main$items);
 var $author$project$HashDict04WithoutClamp$Dict = $elm$core$Basics$identity;
 var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
 var $author$project$HashDict04WithoutClamp$bucketIndex = F2(
@@ -14369,46 +14361,6 @@ var $author$project$HashDict04WithoutClamp$fromList = F2(
 				$author$project$HashDict04WithoutClamp$emptyInner(hash),
 				list));
 	});
-var $author$project$Hash$FNV1a$initialSeed = 2166136261;
-var $elm$core$Bitwise$xor = _Bitwise_xor;
-var $author$project$Hash$FNV1a$mix = F2(
-	function (_byte, hashValue) {
-		var mixed = _byte ^ hashValue;
-		return ((((mixed + (mixed << 1)) + (mixed << 4)) + (mixed << 7)) + (mixed << 8)) + (mixed << 24);
-	});
-var $author$project$Hash$FNV1a$charWithSeed = F2(
-	function (_char, acc) {
-		var _byte = $elm$core$Char$toCode(_char);
-		return (_byte < 128) ? A2($author$project$Hash$FNV1a$mix, _byte, acc) : ((_byte < 2048) ? A2(
-			$author$project$Hash$FNV1a$mix,
-			128 | (63 & _byte),
-			A2($author$project$Hash$FNV1a$mix, 192 | (_byte >>> 6), acc)) : ((_byte < 65536) ? A2(
-			$author$project$Hash$FNV1a$mix,
-			128 | (63 & _byte),
-			A2(
-				$author$project$Hash$FNV1a$mix,
-				128 | (63 & (_byte >>> 6)),
-				A2($author$project$Hash$FNV1a$mix, 224 | (_byte >>> 12), acc))) : A2(
-			$author$project$Hash$FNV1a$mix,
-			128 | (63 & _byte),
-			A2(
-				$author$project$Hash$FNV1a$mix,
-				128 | (63 & (_byte >>> 6)),
-				A2(
-					$author$project$Hash$FNV1a$mix,
-					128 | (63 & (_byte >>> 12)),
-					A2($author$project$Hash$FNV1a$mix, 240 | (_byte >>> 18), acc))))));
-	});
-var $elm$core$String$foldl = _String_foldl;
-var $author$project$Hash$FNV1a$stringWithSeed = F2(
-	function (str, seed) {
-		return A3($elm$core$String$foldl, $author$project$Hash$FNV1a$charWithSeed, seed, str) >>> 0;
-	});
-var $author$project$Hash$FNV1a$string = function (str) {
-	return A2($author$project$Hash$FNV1a$stringWithSeed, str, $author$project$Hash$FNV1a$initialSeed);
-};
-var $author$project$Hash$string = $author$project$Hash$FNV1a$string;
-var $author$project$Main$d04 = A2($author$project$HashDict04WithoutClamp$fromList, $author$project$Hash$string, $author$project$Main$items);
 var $author$project$HashDict06LinearProbing$Dict = $elm$core$Basics$identity;
 var $author$project$HashDict06LinearProbing$Empty = {$: 0};
 var $author$project$HashDict06LinearProbing$Entry = F2(
@@ -14581,8 +14533,6 @@ var $author$project$HashDict06LinearProbing$fromList = F2(
 			$author$project$HashDict06LinearProbing$emptyInner(hash),
 			list);
 	});
-var $author$project$Main$d06 = A2($author$project$HashDict06LinearProbing$fromList, $author$project$Hash$string, $author$project$Main$items);
-var $elm_explorations$benchmark$Benchmark$describe = $elm_explorations$benchmark$Benchmark$Benchmark$Group;
 var $author$project$ListExtra$find = F2(
 	function (predicate, list) {
 		find:
@@ -14663,6 +14613,31 @@ var $author$project$HashDict06LinearProbing$get = F2(
 		};
 		return getLoop(initIndex);
 	});
+var $author$project$Main$itemsOfLength = function (n) {
+	return A2(
+		$elm$core$List$map,
+		function (v) {
+			return _Utils_Tuple2(
+				$elm$core$String$fromInt(v),
+				v);
+		},
+		A2($elm$core$List$range, 1, n));
+};
+var $author$project$Main$prepare = F2(
+	function (steps, fromListFn) {
+		return A2(
+			$elm$core$List$map,
+			function (length) {
+				return _Utils_Tuple2(
+					$elm$core$String$fromInt(length),
+					fromListFn(
+						$author$project$Main$itemsOfLength(length)));
+			},
+			A2(
+				$elm$core$List$map,
+				$elm$core$Basics$mul(10),
+				A2($elm$core$List$range, 0, steps)));
+	});
 var $elm_explorations$benchmark$Benchmark$Status$Cold = {$: 0};
 var $elm_explorations$benchmark$Benchmark$LowLevel$operation = function (fn) {
 	return _Benchmark_operation(fn);
@@ -14684,97 +14659,87 @@ var $elm_explorations$benchmark$Benchmark$scale = F2(
 				},
 				series));
 	});
-var $lue_bird$elm_alternative_benchmark_runner$Benchmark$Alternative$rank = F3(
-	function (name, run, benchmarks) {
+var $author$project$Main$getPresent = F4(
+	function (steps, label, fromListFn, getFn) {
+		var key = $elm$core$String$fromInt((steps * 10) - 1);
 		return A2(
 			$elm_explorations$benchmark$Benchmark$scale,
-			name,
+			label,
 			A2(
 				$elm$core$List$map,
 				function (_v0) {
-					var benchmarkName = _v0.a;
-					var f = _v0.b;
+					var name = _v0.a;
+					var target = _v0.b;
 					return _Utils_Tuple2(
-						benchmarkName,
+						name,
 						function (_v1) {
-							return run(f);
+							return A2(getFn, key, target);
 						});
 				},
-				benchmarks));
+				A2($author$project$Main$prepare, steps, fromListFn)));
 	});
-var $author$project$HashDict04WithoutClamp$toList = function (_v0) {
-	var dict = _v0;
-	return $elm$core$List$concat(
-		$elm$core$Array$toList(dict.h));
+var $author$project$Hash$FNV1a$initialSeed = 2166136261;
+var $elm$core$Bitwise$xor = _Bitwise_xor;
+var $author$project$Hash$FNV1a$mix = F2(
+	function (_byte, hashValue) {
+		var mixed = _byte ^ hashValue;
+		return ((((mixed + (mixed << 1)) + (mixed << 4)) + (mixed << 7)) + (mixed << 8)) + (mixed << 24);
+	});
+var $author$project$Hash$FNV1a$charWithSeed = F2(
+	function (_char, acc) {
+		var _byte = $elm$core$Char$toCode(_char);
+		return (_byte < 128) ? A2($author$project$Hash$FNV1a$mix, _byte, acc) : ((_byte < 2048) ? A2(
+			$author$project$Hash$FNV1a$mix,
+			128 | (63 & _byte),
+			A2($author$project$Hash$FNV1a$mix, 192 | (_byte >>> 6), acc)) : ((_byte < 65536) ? A2(
+			$author$project$Hash$FNV1a$mix,
+			128 | (63 & _byte),
+			A2(
+				$author$project$Hash$FNV1a$mix,
+				128 | (63 & (_byte >>> 6)),
+				A2($author$project$Hash$FNV1a$mix, 224 | (_byte >>> 12), acc))) : A2(
+			$author$project$Hash$FNV1a$mix,
+			128 | (63 & _byte),
+			A2(
+				$author$project$Hash$FNV1a$mix,
+				128 | (63 & (_byte >>> 6)),
+				A2(
+					$author$project$Hash$FNV1a$mix,
+					128 | (63 & (_byte >>> 12)),
+					A2($author$project$Hash$FNV1a$mix, 240 | (_byte >>> 18), acc))))));
+	});
+var $elm$core$String$foldl = _String_foldl;
+var $author$project$Hash$FNV1a$stringWithSeed = F2(
+	function (str, seed) {
+		return A3($elm$core$String$foldl, $author$project$Hash$FNV1a$charWithSeed, seed, str) >>> 0;
+	});
+var $author$project$Hash$FNV1a$string = function (str) {
+	return A2($author$project$Hash$FNV1a$stringWithSeed, str, $author$project$Hash$FNV1a$initialSeed);
 };
-var $author$project$HashDict06LinearProbing$toList = function (_v0) {
-	var dict = _v0;
-	return A2(
-		$elm$core$List$filterMap,
-		function (entry) {
-			if (entry.$ === 1) {
-				var k = entry.a;
-				var v = entry.b;
-				return $elm$core$Maybe$Just(
-					_Utils_Tuple2(k, v));
-			} else {
-				return $elm$core$Maybe$Nothing;
-			}
-		},
-		$elm$core$Array$toList(dict.h));
-};
+var $author$project$Hash$string = $author$project$Hash$FNV1a$string;
 var $author$project$Main$suite = A2(
 	$elm_explorations$benchmark$Benchmark$describe,
 	'Dictionaries',
 	_List_fromArray(
 		[
-			A3(
-			$lue_bird$elm_alternative_benchmark_runner$Benchmark$Alternative$rank,
-			'fromList',
-			function (f) {
-				return f($author$project$Main$items);
-			},
+			A2(
+			$elm_explorations$benchmark$Benchmark$describe,
+			'get (present)',
 			_List_fromArray(
 				[
-					_Utils_Tuple2(
-					'Dict',
-					A2($elm$core$Basics$composeR, $elm$core$Dict$fromList, $elm$core$Dict$toList)),
-					_Utils_Tuple2(
+					A4($author$project$Main$getPresent, 15, 'Dict', $elm$core$Dict$fromList, $elm$core$Dict$get),
+					A4(
+					$author$project$Main$getPresent,
+					15,
 					'HashDict04WithoutClamp',
-					A2(
-						$elm$core$Basics$composeR,
-						$author$project$HashDict04WithoutClamp$fromList($author$project$Hash$string),
-						$author$project$HashDict04WithoutClamp$toList)),
-					_Utils_Tuple2(
+					$author$project$HashDict04WithoutClamp$fromList($author$project$Hash$string),
+					$author$project$HashDict04WithoutClamp$get),
+					A4(
+					$author$project$Main$getPresent,
+					15,
 					'HashDict06LinearProbing',
-					A2(
-						$elm$core$Basics$composeR,
-						$author$project$HashDict06LinearProbing$fromList($author$project$Hash$string),
-						$author$project$HashDict06LinearProbing$toList))
-				])),
-			A3(
-			$lue_bird$elm_alternative_benchmark_runner$Benchmark$Alternative$rank,
-			'get',
-			function (f) {
-				return f('150');
-			},
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'Dict',
-					function (k) {
-						return A2($elm$core$Dict$get, k, $author$project$Main$d00);
-					}),
-					_Utils_Tuple2(
-					'HashDict04WithoutClamp',
-					function (k) {
-						return A2($author$project$HashDict04WithoutClamp$get, k, $author$project$Main$d04);
-					}),
-					_Utils_Tuple2(
-					'HashDict06LinearProbing',
-					function (k) {
-						return A2($author$project$HashDict06LinearProbing$get, k, $author$project$Main$d06);
-					})
+					$author$project$HashDict06LinearProbing$fromList($author$project$Hash$string),
+					$author$project$HashDict06LinearProbing$get)
 				]))
 		]));
 var $author$project$Main$main = $lue_bird$elm_alternative_benchmark_runner$Benchmark$Runner$Alternative$program($author$project$Main$suite);
