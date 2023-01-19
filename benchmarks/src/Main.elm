@@ -6,7 +6,6 @@ import Benchmark.Runner.Alternative as Runner exposing (Program)
 import Dict
 import Hash
 import HashDict04WithoutClamp
-import HashDict06LinearProbing
 import HashDict07RobinHood
 
 
@@ -32,10 +31,6 @@ d00 =
 
 d04 =
     HashDict04WithoutClamp.fromList Hash.string items
-
-
-d06 =
-    HashDict06LinearProbing.fromList Hash.string items
 
 
 d07 =
@@ -120,31 +115,27 @@ suite =
                ]
           -}
           Benchmark.describe "insert (not present)"
-            [ insertNotPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.insert
+            [ insertNotPresent 15 "Dict" Dict.fromList Dict.insert
             , insertNotPresent 15 "HashDict07RobinHood" (HashDict07RobinHood.fromList Hash.string) HashDict07RobinHood.insert
 
-            -- , insertNotPresent 15 "Dict" Dict.fromList Dict.insert
-            -- , insertNotPresent 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.insert
+            --[ insertNotPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.insert
             ]
         , Benchmark.describe "insert (present)"
-            [ insertPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.insert
+            [ insertPresent 15 "Dict" Dict.fromList Dict.insert
             , insertPresent 15 "HashDict07RobinHood" (HashDict07RobinHood.fromList Hash.string) HashDict07RobinHood.insert
 
-            -- , insertPresent 15 "Dict" Dict.fromList Dict.insert
-            -- , insertPresent 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.insert
+            --[ insertPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.insert
             ]
         , Benchmark.describe "get (not present)"
-            [ getNotPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.get
+            [ getNotPresent 15 "Dict" Dict.fromList Dict.get
             , getNotPresent 15 "HashDict07RobinHood" (HashDict07RobinHood.fromList Hash.string) HashDict07RobinHood.get
 
-            -- , getNotPresent 15 "Dict" Dict.fromList Dict.get
-            -- , getNotPresent 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.get
+            --[ getNotPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.get
             ]
         , Benchmark.describe "get (present)"
-            [ getPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.get
+            [ getPresent 15 "Dict" Dict.fromList Dict.get
             , getPresent 15 "HashDict07RobinHood" (HashDict07RobinHood.fromList Hash.string) HashDict07RobinHood.get
 
-            -- , getPresent 15 "Dict" Dict.fromList Dict.get
-            -- , getPresent 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.get
+            --[ getPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.get
             ]
         ]

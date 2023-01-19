@@ -54,7 +54,7 @@ type Dict k v
 
 type alias Inner k v =
     { hash : k -> Int
-    , buckets : Array ( Int, Bucket k v ) -- TODO have the offset Int only as part of the Entry?
+    , buckets : Array (Bucket k v)
     , size : Int -- actual keys stored
     , sizeWithTombstones : Int -- for resizing
     , capacity : Int -- derivable from shift, but let's cache it. Used in every resize check (after insert)
@@ -64,15 +64,15 @@ type alias Inner k v =
 
 type Bucket k v
     = Empty
-    | Entry k v
+    | Entry Int k v
     | Tombstone
 
 
 mapBucket : (k -> v1 -> v2) -> Bucket k v1 -> Bucket k v2
 mapBucket fn bucket =
     case bucket of
-        Entry k v ->
-            Entry k (fn k v)
+        Entry o k v ->
+            Entry o k (fn k v)
 
         Empty ->
             Empty
@@ -117,7 +117,7 @@ empty hash =
 emptyInner : (k -> Int) -> Inner k v
 emptyInner hash =
     { hash = hash
-    , buckets = Array.repeat initCapacity ( -1, Empty )
+    , buckets = Array.repeat initCapacity Empty
     , size = 0
     , sizeWithTombstones = 0
     , capacity = initCapacity
@@ -147,14 +147,10 @@ addEntry ( key, value ) dict =
                 insertLoop 0 offset currK currV d
 
             else
-                let
-                    ( xOffset, bucket ) =
-                        Array.get index d.buckets |> unwrapOrCrash
-                in
-                case bucket of
+                case Array.get index d.buckets |> unwrapOrCrash of
                     Empty ->
                         { d
-                            | buckets = Array.set index ( offset, Entry currK currV ) d.buckets
+                            | buckets = Array.set index (Entry offset currK currV) d.buckets
                             , size = d.size + 1
                             , sizeWithTombstones = d.sizeWithTombstones + 1
                         }
@@ -164,9 +160,9 @@ addEntry ( key, value ) dict =
                         -- we can't reuse tombstone (insert here), because our item might be somewhere further along
                         insertLoop (index + 1) (offset + 1) currK currV d
 
-                    Entry k v ->
+                    Entry xOffset k v ->
                         if k == currK then
-                            { d | buckets = Array.set index ( xOffset, Entry currK currV ) d.buckets }
+                            { d | buckets = Array.set index (Entry xOffset currK currV) d.buckets }
 
                         else
                             case compare xOffset offset of
@@ -177,7 +173,7 @@ addEntry ( key, value ) dict =
                                         (xOffset + 1)
                                         k
                                         v
-                                        { d | buckets = Array.set index ( offset, Entry currK currV ) d.buckets }
+                                        { d | buckets = Array.set index (Entry offset currK currV) d.buckets }
 
                                 EQ ->
                                     -- they're equal, can't do much, continue below
@@ -202,18 +198,14 @@ get key (Dict dict) =
                 getLoop 0
 
             else
-                let
-                    ( _, bucket ) =
-                        Array.get index dict.buckets |> unwrapOrCrash
-                in
-                case bucket of
+                case Array.get index dict.buckets |> unwrapOrCrash of
                     Empty ->
                         Nothing
 
                     Tombstone ->
                         getLoop (index + 1)
 
-                    Entry k v ->
+                    Entry _ k v ->
                         if k == key then
                             Just v
 
@@ -235,7 +227,7 @@ resize dict =
 
             emptyNewDict =
                 { dict
-                    | buckets = Array.repeat newCapacity ( -1, Empty )
+                    | buckets = Array.repeat newCapacity Empty
                     , capacity = newCapacity
                     , shift = newShift
                     , size = 0
@@ -283,18 +275,14 @@ member key (Dict dict) =
                 memberLoop 0
 
             else
-                let
-                    ( _, bucket ) =
-                        Array.get index dict.buckets |> unwrapOrCrash
-                in
-                case bucket of
+                case Array.get index dict.buckets |> unwrapOrCrash of
                     Empty ->
                         False
 
                     Tombstone ->
                         memberLoop (index + 1)
 
-                    Entry k v ->
+                    Entry _ k v ->
                         if k == key then
                             True
 
@@ -309,9 +297,9 @@ toList (Dict dict) =
     dict.buckets
         |> Array.toList
         |> List.filterMap
-            (\( _, entry ) ->
+            (\entry ->
                 case entry of
-                    Entry k v ->
+                    Entry _ k v ->
                         Just ( k, v )
 
                     _ ->
@@ -331,9 +319,9 @@ keys (Dict dict) =
     dict.buckets
         |> Array.toList
         |> List.filterMap
-            (\( _, entry ) ->
+            (\entry ->
                 case entry of
-                    Entry k v ->
+                    Entry _ k _ ->
                         Just k
 
                     _ ->
@@ -346,9 +334,9 @@ values (Dict dict) =
     dict.buckets
         |> Array.toList
         |> List.filterMap
-            (\( _, entry ) ->
+            (\entry ->
                 case entry of
-                    Entry k v ->
+                    Entry _ _ v ->
                         Just v
 
                     _ ->
@@ -364,9 +352,9 @@ fold fn acc (Dict dict) =
 fold_ : (k -> v -> acc -> acc) -> acc -> Inner k v -> acc
 fold_ fn acc dict =
     Array.foldl
-        (\( _, bucket ) accA ->
+        (\bucket accA ->
             case bucket of
-                Entry k v ->
+                Entry _ k v ->
                     fn k v accA
 
                 _ ->
@@ -388,22 +376,18 @@ remove key ((Dict dict) as wrappedDict) =
                 removeLoop 0
 
             else
-                let
-                    ( offset, bucket ) =
-                        Array.get index dict.buckets |> unwrapOrCrash
-                in
-                case bucket of
+                case Array.get index dict.buckets |> unwrapOrCrash of
                     Empty ->
                         wrappedDict
 
                     Tombstone ->
                         removeLoop (index + 1)
 
-                    Entry k v ->
+                    Entry _ k v ->
                         if k == key then
                             Dict
                                 { dict
-                                    | buckets = Array.set index ( offset, Tombstone ) dict.buckets
+                                    | buckets = Array.set index Tombstone dict.buckets
                                     , size = dict.size - 1
                                 }
 
@@ -425,11 +409,7 @@ update key fn ((Dict dict) as wrappedDict) =
                 updateLoop 0
 
             else
-                let
-                    ( _, bucket ) =
-                        Array.get index dict.buckets |> unwrapOrCrash
-                in
-                case bucket of
+                case Array.get index dict.buckets |> unwrapOrCrash of
                     Empty ->
                         case fn Nothing of
                             Nothing ->
@@ -442,7 +422,7 @@ update key fn ((Dict dict) as wrappedDict) =
                     Tombstone ->
                         updateLoop (index + 1)
 
-                    Entry k v ->
+                    Entry _ k v ->
                         if k == key then
                             case fn (Just v) of
                                 Nothing ->
@@ -462,7 +442,7 @@ update key fn ((Dict dict) as wrappedDict) =
 map : (k -> v1 -> v2) -> Dict k v1 -> Dict k v2
 map fn (Dict dict) =
     Dict
-        { buckets = Array.map (\( o, b ) -> ( o, mapBucket fn b )) dict.buckets
+        { buckets = Array.map (\b -> mapBucket fn b) dict.buckets
         , hash = dict.hash
         , size = dict.size
         , sizeWithTombstones = dict.sizeWithTombstones
@@ -476,7 +456,7 @@ filter pred (Dict dict) =
     let
         ( newBuckets, newSize, _ ) =
             Array.foldl
-                (\( offset, bucket ) ( accBuckets, accSizeA, i ) ->
+                (\bucket ( accBuckets, accSizeA, i ) ->
                     case bucket of
                         Tombstone ->
                             ( accBuckets, accSizeA, i + 1 )
@@ -484,12 +464,12 @@ filter pred (Dict dict) =
                         Empty ->
                             ( accBuckets, accSizeA, i + 1 )
 
-                        Entry k v ->
+                        Entry _ k v ->
                             if pred k v then
                                 ( accBuckets, accSizeA, i + 1 )
 
                             else
-                                ( Array.set i ( offset, Tombstone ) accBuckets
+                                ( Array.set i Tombstone accBuckets
                                 , accSizeA - 1
                                 , i + 1
                                 )
