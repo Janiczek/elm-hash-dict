@@ -7,6 +7,7 @@ import Dict
 import Hash
 import HashDict04WithoutClamp
 import HashDict06LinearProbing
+import HashDict07RobinHood
 
 
 main : Program
@@ -35,6 +36,10 @@ d04 =
 
 d06 =
     HashDict06LinearProbing.fromList Hash.string items
+
+
+d07 =
+    HashDict07RobinHood.fromList Hash.string items
 
 
 prepare steps fromListFn =
@@ -68,10 +73,34 @@ insertNotPresent steps label fromListFn insertFn =
         )
 
 
+insertPresent steps label fromListFn insertFn =
+    let
+        ( key, value ) =
+            ( String.fromInt (steps * 10)
+            , 999
+            )
+    in
+    Benchmark.scale label
+        (prepare steps fromListFn
+            |> List.map (\( name, target ) -> ( name, \_ -> insertFn key value target ))
+        )
+
+
+getNotPresent steps label fromListFn getFn =
+    let
+        key =
+            String.fromInt (steps * 10 + 1)
+    in
+    Benchmark.scale label
+        (prepare steps fromListFn
+            |> List.map (\( name, target ) -> ( name, \_ -> getFn key target ))
+        )
+
+
 getPresent steps label fromListFn getFn =
     let
         key =
-            String.fromInt (steps * 10 - 1)
+            String.fromInt (steps * 10)
     in
     Benchmark.scale label
         (prepare steps fromListFn
@@ -83,46 +112,39 @@ suite : Benchmark
 suite =
     Benchmark.describe "Dictionaries"
         [ {-
-             Benchmark.rank "fromList >> toList"
-               (\f -> f items)
-               [ ( "Dict", Dict.fromList >> Dict.toList )
-               , ( "HashDict04WithoutClamp", HashDict04WithoutClamp.fromList Hash.string >> HashDict04WithoutClamp.toList )
-               , ( "HashDict06LinearProbing", HashDict06LinearProbing.fromList Hash.string >> HashDict06LinearProbing.toList )
-               ]
-          -}
-          {-
-             Benchmark.rank "get (successful)"
-                 (\f -> f "50")
-                 [ ( "Dict", \k -> Dict.get k d00 )
-                 , ( "HashDict04WithoutClamp", \k -> HashDict04WithoutClamp.get k d04 )
-                 , ( "HashDict06LinearProbing", \k -> HashDict06LinearProbing.get k d06 )
-                 ]
-          -}
-          {-
-             Benchmark.rank "get (unsuccessful)"
-                 (\f -> f "150")
-                 [ ( "Dict", \k -> Dict.get k d00 )
-                 , ( "HashDict04WithoutClamp", \k -> HashDict04WithoutClamp.get k d04 )
-                 , ( "HashDict06LinearProbing", \k -> HashDict06LinearProbing.get k d06 )
-                 ]
-          -}
-          {-
              Benchmark.describe "size"
                [ size 15 "Dict" Dict.fromList Dict.size
-               , size 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.string
-               , size 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.string
+               , size 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.size
+               , size 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.size
+               , size 15 "HashDict07RobinHood" (HashDict07RobinHood.fromList Hash.string) HashDict07RobinHood.size
                ]
           -}
-          {-
-             Benchmark.describe "insert (not present)"
-               [ insertNotPresent 15 "Dict" Dict.fromList Dict.insert
-               , insertNotPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.insert
-               , insertNotPresent 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.insert
-               ]
-          -}
-          Benchmark.describe "get (present)"
-            [ getPresent 15 "Dict" Dict.fromList Dict.get
-            , getPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.get
-            , getPresent 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.get
+          Benchmark.describe "insert (not present)"
+            [ insertNotPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.insert
+            , insertNotPresent 15 "HashDict07RobinHood" (HashDict07RobinHood.fromList Hash.string) HashDict07RobinHood.insert
+
+            -- , insertNotPresent 15 "Dict" Dict.fromList Dict.insert
+            -- , insertNotPresent 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.insert
+            ]
+        , Benchmark.describe "insert (present)"
+            [ insertPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.insert
+            , insertPresent 15 "HashDict07RobinHood" (HashDict07RobinHood.fromList Hash.string) HashDict07RobinHood.insert
+
+            -- , insertPresent 15 "Dict" Dict.fromList Dict.insert
+            -- , insertPresent 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.insert
+            ]
+        , Benchmark.describe "get (not present)"
+            [ getNotPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.get
+            , getNotPresent 15 "HashDict07RobinHood" (HashDict07RobinHood.fromList Hash.string) HashDict07RobinHood.get
+
+            -- , getNotPresent 15 "Dict" Dict.fromList Dict.get
+            -- , getNotPresent 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.get
+            ]
+        , Benchmark.describe "get (present)"
+            [ getPresent 15 "HashDict04WithoutClamp" (HashDict04WithoutClamp.fromList Hash.string) HashDict04WithoutClamp.get
+            , getPresent 15 "HashDict07RobinHood" (HashDict07RobinHood.fromList Hash.string) HashDict07RobinHood.get
+
+            -- , getPresent 15 "Dict" Dict.fromList Dict.get
+            -- , getPresent 15 "HashDict06LinearProbing" (HashDict06LinearProbing.fromList Hash.string) HashDict06LinearProbing.get
             ]
         ]

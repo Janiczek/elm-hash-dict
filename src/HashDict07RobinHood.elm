@@ -1,4 +1,4 @@
-module HashDict exposing
+module HashDict07RobinHood exposing
     ( Dict
     , empty, singleton, insert, update, remove
     , isEmpty, member, get, size
