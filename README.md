@@ -2,11 +2,11 @@
 
 Gets are constant across dict sizes and outperform Dict above ~16 items:
 
-![get (not present)](./docs/get-not-present.png) ![get (present)](./docs/get-present.png)
+<img src="./docs/get-not-present.png" style="width: 50%"> <img src="./docs/get-present.png" style="width: 50%">
 
 At the expense of longer insertion times:
 
-![insert (not present)](./docs/insert-not-present.png) ![insert (present)](./docs/insert-present.png)
+<img src="./docs/insert-not-present.png" style="width: 50%"> <img src="./docs/insert-present.png" style="width: 50%">
 
 ## Credits
 
