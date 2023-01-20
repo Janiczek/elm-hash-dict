@@ -2,11 +2,11 @@
 
 Gets are constant across dict sizes and outperform Dict above ~16 items:
 
-<img src="./docs/get-not-present.png" style="width: 50%"> <img src="./docs/get-present.png" style="width: 50%">
+<img src="./docs/get-not-present.png" style="width: 40%"> <img src="./docs/get-present.png" style="width: 40%">
 
 At the expense of longer insertion times:
 
-<img src="./docs/insert-not-present.png" style="width: 50%"> <img src="./docs/insert-present.png" style="width: 50%">
+<img src="./docs/insert-not-present.png" style="width: 40%"> <img src="./docs/insert-present.png" style="width: 40%">
 
 ## Credits
 
