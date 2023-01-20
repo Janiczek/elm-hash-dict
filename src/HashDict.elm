@@ -9,7 +9,7 @@ module HashDict exposing
 
 {-| This is:
 
-06LinearProbing + Robin Hood
+07RobinHood + Eviction
 
 
 # Dictionaries
@@ -165,23 +165,22 @@ addEntry ( key, value ) dict =
                             { d | buckets = Array.set index (Entry xOffset currK currV) d.buckets }
 
                         else
-                            case compare xOffset offset of
-                                LT ->
-                                    -- x is rich, inserted is poor - swap them and continue looping with the rich
-                                    insertLoop
-                                        (index + 1)
-                                        (xOffset + 1)
-                                        k
-                                        v
-                                        { d | buckets = Array.set index (Entry offset currK currV) d.buckets }
+                        -- Evict if:
+                        -- a) this is the "home" (wanted index) for the new entry and the current entry is already away from its home
+                        -- b) the new entry is farther from its home than the current entry
+                        if
+                            (offset == 0 && xOffset > 0) || (xOffset /= 0 && xOffset < offset)
+                        then
+                            -- swap them and continue looping with the other one
+                            insertLoop
+                                (index + 1)
+                                (xOffset + 1)
+                                k
+                                v
+                                { d | buckets = Array.set index (Entry offset currK currV) d.buckets }
 
-                                EQ ->
-                                    -- they're equal, can't do much, continue below
-                                    insertLoop (index + 1) (offset + 1) currK currV d
-
-                                GT ->
-                                    -- x is poor, inserted is rich - continue below
-                                    insertLoop (index + 1) (offset + 1) currK currV d
+                        else
+                            insertLoop (index + 1) (offset + 1) currK currV d
     in
     insertLoop initIndex 0 key value dict
 
